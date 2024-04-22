@@ -46,7 +46,17 @@ lazy val macros = crossProject(JVMPlatform, NativePlatform)
         case _ => sharedSourceDir / "scala-3"
       }
     },
-    crossScalaVersions := supportedScalaVersions
+    crossScalaVersions := supportedScalaVersions,
+    Compile / packageBin / mappings ~= { (ms: Seq[(File, String)]) =>
+      val filesToRemove = Set(
+        "me/shadaj/scalapy/py/FacadeCreator.tasty",
+        "me/shadaj/scalapy/py/Any.tasty",
+        "me/shadaj/scalapy/py/FacadeCreator.class",
+        "me/shadaj/scalapy/py/Any.class",
+      )
+
+      ms filter { case (file, toPath) => !filesToRemove(toPath) }
+    }
   )
 
 lazy val macrosJVM = macros.jvm

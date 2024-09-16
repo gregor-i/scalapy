@@ -1,7 +1,5 @@
 package me.shadaj.scalapy.interpreter
 
-import me.shadaj.scalapy.util.Compat
-
 import scala.collection.mutable
 import scala.collection.mutable.Stack
 import scala.collection.mutable.Queue
@@ -96,35 +94,6 @@ final class PyValue private[PyValue](var _underlying: Platform.Pointer, safeGlob
     }
 
     def iterator: Iterator[T] = (0 until length).toIterator.map(apply)
-  }
-
-  import scala.collection.mutable
-  def getMap: mutable.Map[PyValue, PyValue] = new Compat.MutableMap[PyValue, PyValue] {
-    def get(key: PyValue): Option[PyValue] = CPythonInterpreter.withGil {
-      val contains = CPythonAPI.PyDict_Contains(
-        underlying,
-        key.underlying
-      ) == 1
-
-      CPythonInterpreter.throwErrorIfOccured()
-
-      if (contains) {
-        val value = CPythonAPI.PyDict_GetItem(underlying, key.underlying)
-        CPythonInterpreter.throwErrorIfOccured()
-        Some(PyValue.fromBorrowed(value))
-      } else Option.empty[PyValue]
-    }
-
-    def iterator: Iterator[(PyValue, PyValue)] = CPythonInterpreter.withGil {
-      val keysList = PyValue.fromNew(CPythonAPI.PyDict_Keys(underlying))
-      CPythonInterpreter.throwErrorIfOccured()
-      keysList.getSeq(PyValue.fromBorrowed(_), null).toIterator.map { k =>
-        (k, get(k).get)
-      }
-    }
-
-    override def addOne(kv: (PyValue, PyValue)): this.type = ???
-    override def subtractOne(k: PyValue): this.type = ???
   }
 
   def cleanup(ignoreCleaned: Boolean = false): Unit = if (!noCleanup) {

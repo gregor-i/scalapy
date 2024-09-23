@@ -10,8 +10,8 @@ class SpecialSyntaxTest extends AnyFunSuite {
   test("Can use with statement with file object") {
     local {
       val opened = if (interpreter.Platform.isNative) {
-        Dynamic.global.open("./README.md", "r")
-      } else Dynamic.global.open("../../README.md", "r")
+        Dynamic.global.open("./README.md", "r", encoding = "UTF-8")
+      } else Dynamic.global.open("../../README.md", "r", encoding = "UTF-8")
       `with`(opened) { file =>
         assert(file.as[Dynamic].encoding.as[String] == "UTF-8")
       }

@@ -2,12 +2,28 @@ package me.shadaj.scalapy.interpreter
 
 import me.shadaj.scalapy.util.Compat
 
+import java.lang.ref.Cleaner
+import java.lang.ref.Cleaner.Cleanable
+import java.util.concurrent.atomic.AtomicBoolean
 import scala.collection.mutable
 import scala.collection.mutable.Stack
 import scala.collection.mutable.Queue
 
 final class PyValue private[PyValue](var _underlying: Platform.Pointer, safeGlobal: Boolean = false) {
-  private[scalapy] var noCleanup: Boolean = false
+  private[this] val noCleanup: AtomicBoolean = new AtomicBoolean(false)
+  private[scalapy] def disableCleanup(): Unit = noCleanup.set(true)
+
+  private[this] val cleanable: Cleanable = {
+      // note: don't inline these value. The constructed runnable can't hold any references to the parent PyValue
+      val parentUnderlying = _underlying
+      val parentNoCleanup = noCleanup
+      PyValue.cleaner.register(this,
+        () => {
+          if(!parentNoCleanup.get())
+            CPythonInterpreter.withGil(CPythonAPI.Py_DecRef(parentUnderlying))
+        }
+      )
+    }
 
   val myAllocatedValues = PyValue.allocatedValues.get()
   if (Platform.isNative && myAllocatedValues.isEmpty && !safeGlobal && !PyValue.disabledAllocationWarning) {
@@ -127,15 +143,14 @@ final class PyValue private[PyValue](var _underlying: Platform.Pointer, safeGlob
     override def subtractOne(k: PyValue): this.type = ???
   }
 
-  def cleanup(ignoreCleaned: Boolean = false): Unit = if (!noCleanup) {
-    CPythonInterpreter.withGil {
+  def cleanup(ignoreCleaned: Boolean = false): Unit =
+    if (!noCleanup.get) {
       if (_underlying != null) {
-        CPythonAPI.Py_DecRef(_underlying)
+        cleanable.clean()
         _underlying = null
       } else if (!ignoreCleaned) {
         throw new IllegalStateException("This PyValue has already been cleaned up")
       }
-    }
   }
 
   private[scalapy] def dup(): PyValue = {
@@ -143,13 +158,6 @@ final class PyValue private[PyValue](var _underlying: Platform.Pointer, safeGlob
       PyValue.fromBorrowed(_underlying)
     } else {
       throw new IllegalStateException("Cannot dup a PyValue that has been cleaned")
-    }
-  }
-
-  override def finalize(): Unit = CPythonInterpreter.withGil {
-    if (_underlying != null) {
-      CPythonAPI.Py_DecRef(_underlying)
-      _underlying = null
     }
   }
 }
@@ -173,4 +181,6 @@ object PyValue {
   def disableAllocationWarning(): Unit = {
     disabledAllocationWarning = true
   }
+
+  val cleaner: Cleaner = Cleaner.create()
 }

@@ -6,12 +6,12 @@ import me.shadaj.scalapy.interpreter.PyValue
 
 trait StaticModule(name: String) extends Module {
   __scalapy__rawValue = module(name).__scalapy_value
-  __scalapy__rawValue.noCleanup = true
+  __scalapy__rawValue.disableCleanup()
 }
 
 trait StaticValue(value: Any) extends Any {
   __scalapy__rawValue = value.__scalapy_value
-  __scalapy__rawValue.noCleanup = true
+  __scalapy__rawValue.disableCleanup()
 }
 
 abstract class FacadeCreator[F <: Any] {

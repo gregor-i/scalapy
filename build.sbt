@@ -168,7 +168,7 @@ lazy val core = crossProject(JVMPlatform, NativePlatform)
       IO.write(fileToWrite, toWrite)
       Seq(fileToWrite)
     },
-    libraryDependencies += "org.scala-lang.modules" %%% "scala-collection-compat" % "2.12.0",
+    libraryDependencies += "org.scala-lang.modules" %%% "scala-collection-compat" % "2.14.0",
     libraryDependencies ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
         case Some((2, _)) => Seq(
@@ -177,7 +177,7 @@ lazy val core = crossProject(JVMPlatform, NativePlatform)
         case _ => Seq.empty
       }
     },
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.19" % Test,
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.20" % Test,
     Compile / unmanagedSourceDirectories += {
       val sharedSourceDir = (ThisBuild / baseDirectory).value / "core/shared/src/main"
       if (scalaVersion.value.startsWith("2.13.") || scalaVersion.value.startsWith("3")) sharedSourceDir / "scala-2.13"
